@@ -1,6 +1,6 @@
 from telegram.ext import Application, CommandHandler, MessageHandler
 from telegram.ext.filters import Text, COMMAND
-from telegram import ReplyKeyboardMarkup, KeyboardButton
+from telegram import ReplyKeyboardMarkup, KeyboardButton, Update
 from sheets_code import add_article, add_goal, get_articles, get_goals, clear_sheet
 import os
 import asyncio
@@ -9,31 +9,37 @@ from aiohttp import web
 async def health_check(request):
     return web.Response(text="OK", status=200)
 
-async def run():
-    # Настройка health check
-    web_app = web.Application()
-    web_app.router.add_get("/health", health_check)
-    runner = web.AppRunner(web_app)
-    await runner.setup()
-    health_port = int(os.getenv("PORT", 10000))
-    site = web.TCPSite(runner, "0.0.0.0", health_port)
-    await site.start()
+async def telegram_webhook(request):
+    data = await request.json()
+    update = Update.de_json(data, app.bot)
+    await app.process_update(update)
+    return web.Response(text="OK", status=200)
 
-    # Настройка Telegram bot
+async def setup_application():
+    global app
     app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu))
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
-    webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
+    await app.initialize()
 
-    # Запуск webhook
-    webhook_port = health_port + 1
-    await app.run_webhook(
-        listen="0.0.0.0",
-        port=webhook_port,
-        url_path="telegram",
-        webhook_url=webhook_url
-    )
+async def run():
+    await setup_application()
+
+    # Настройка сервера
+    web_app = web.Application()
+    web_app.router.add_get("/health", health_check)
+    web_app.router.add_post("/telegram", telegram_webhook)
+
+    # Запуск сервера
+    port = int(os.getenv("PORT", 10000))
+    runner = web.AppRunner(web_app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+    # Держим сервер активным
+    await asyncio.Event().wait()
 
 async def start(update, context):
     keyboard = [["➕ Добавить статью", "✅ Добавить задачу"], ["📖 Показать статьи", "📋 Показать задачи"], ["🧼 Очистить статьи", "🧼 Очистить задачи"]]
