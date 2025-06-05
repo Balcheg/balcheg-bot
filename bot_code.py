@@ -29,14 +29,17 @@ def run():
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
     webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
 
-    # Запуск webhook на другом порту
-    webhook_port = health_port + 1  # Используем следующий порт
-    loop.run_until_complete(app.run_webhook(
+    # Запуск webhook как задачу
+    webhook_port = health_port + 1
+    loop.create_task(app.run_webhook(
         listen="0.0.0.0",
         port=webhook_port,
         url_path="telegram",
         webhook_url=webhook_url
     ))
+
+    # Держим цикл событий активным
+    loop.run_forever()
 
 async def start(update, context):
     keyboard = [["➕ Добавить статью", "✅ Добавить задачу"], ["📖 Показать статьи", "📋 Показать задачи"], ["🧼 Очистить статьи", "🧼 Очистить задачи"]]
