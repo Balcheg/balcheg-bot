@@ -2,14 +2,18 @@ from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQu
 from telegram.ext.filters import Text, COMMAND
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 from sheets_code import add_article, add_goal, get_articles, get_goals, clear_sheet
-from datetime import datetime
+import os
+
+def run():
+    app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("menu", menu))
+    app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
+    app.run_webhook(listen="0.0.0.0", port=int(os.getenv("PORT", 8443)), url_path="telegram")
+    app.idle()
 
 async def start(update, context):
-    keyboard = [
-        ["➕ Добавить статью", "✅ Добавить задачу"],
-        ["📖 Показать статьи", "📋 Показать задачи"],
-        ["🧼 Очистить статьи", "🧼 Очистить задачи"]
-    ]
+    keyboard = [["➕ Добавить статью", "✅ Добавить задачу"], ["📖 Показать статьи", "📋 Показать задачи"], ["🧼 Очистить статьи", "🧼 Очистить задачи"]]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
     await update.message.reply_text("Выбери действие:", reply_markup=reply_markup)
 
@@ -60,10 +64,5 @@ async def handle_message(update, context):
     except Exception as e:
         await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
 
-app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("menu", menu))
-app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
-
 if __name__ == "__main__":
-    app.run_polling()
+    run()
