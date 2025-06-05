@@ -18,7 +18,8 @@ def run():
     web_app.router.add_get("/health", health_check)
     runner = web.AppRunner(web_app)
     loop.run_until_complete(runner.setup())
-    site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 10000)))
+    health_port = int(os.getenv("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", health_port)
     loop.run_until_complete(site.start())
 
     # Настройка Telegram bot
@@ -28,10 +29,11 @@ def run():
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
     webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
 
-    # Запуск webhook
+    # Запуск webhook на другом порту
+    webhook_port = health_port + 1  # Используем следующий порт
     loop.run_until_complete(app.run_webhook(
         listen="0.0.0.0",
-        port=int(os.getenv("PORT", 10000)),
+        port=webhook_port,
         url_path="telegram",
         webhook_url=webhook_url
     ))
