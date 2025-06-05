@@ -4,10 +4,6 @@ from telegram import ReplyKeyboardMarkup, KeyboardButton
 from sheets_code import add_article, add_goal, get_articles, get_goals, clear_sheet
 import os
 import asyncio
-from aiohttp import web
-
-async def health_check(request):
-    return web.Response(text="OK", status=200)
 
 async def run():
     app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
@@ -16,17 +12,11 @@ async def run():
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
     webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
 
-    # Настройка aiohttp для health check
-    web_app = web.Application()
-    web_app.router.add_get("/", health_check)
-
-    # Запуск webhook
     await app.run_webhook(
         listen="0.0.0.0",
         port=int(os.getenv("PORT", 10000)),
         url_path="telegram",
-        webhook_url=webhook_url,
-        web_application=web_app
+        webhook_url=webhook_url
     )
 
 async def start(update, context):
