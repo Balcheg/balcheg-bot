@@ -9,7 +9,7 @@ from aiohttp import web
 async def health_check(request):
     return web.Response(text="OK", status=200)
 
-async def run():
+def run():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
@@ -17,9 +17,9 @@ async def run():
     web_app = web.Application()
     web_app.router.add_get("/health", health_check)
     runner = web.AppRunner(web_app)
-    await runner.setup()
+    loop.run_until_complete(runner.setup())
     site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 10000)))
-    await site.start()
+    loop.run_until_complete(site.start())
 
     # Настройка Telegram bot
     app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
@@ -29,12 +29,12 @@ async def run():
     webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
 
     # Запуск webhook
-    await app.run_webhook(
+    loop.run_until_complete(app.run_webhook(
         listen="0.0.0.0",
         port=int(os.getenv("PORT", 10000)),
         url_path="telegram",
         webhook_url=webhook_url
-    )
+    ))
 
 async def start(update, context):
     keyboard = [["➕ Добавить статью", "✅ Добавить задачу"], ["📖 Показать статьи", "📋 Показать задачи"], ["🧼 Очистить статьи", "🧼 Очистить задачи"]]
@@ -89,4 +89,4 @@ async def handle_message(update, context):
         await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
 
 if __name__ == "__main__":
-    asyncio.run(run())
+    run()
