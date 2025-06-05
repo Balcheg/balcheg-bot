@@ -9,10 +9,10 @@ def run():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu))
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
-    webhook_url = "https://balcheg-bot-1.onrender.com/telegram"  # Укажи URL твоего сервиса
+    webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
     app.run_webhook(
         listen="0.0.0.0",
-        port=int(os.getenv("PORT", 10000)),  # Порт 10000
+        port=int(os.getenv("PORT", 10000)),
         url_path="telegram",
         webhook_url=webhook_url
     )
