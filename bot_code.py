@@ -9,18 +9,15 @@ from aiohttp import web
 async def health_check(request):
     return web.Response(text="OK", status=200)
 
-def run():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
+async def run():
     # Настройка health check
     web_app = web.Application()
     web_app.router.add_get("/health", health_check)
     runner = web.AppRunner(web_app)
-    loop.run_until_complete(runner.setup())
+    await runner.setup()
     health_port = int(os.getenv("PORT", 10000))
     site = web.TCPSite(runner, "0.0.0.0", health_port)
-    loop.run_until_complete(site.start())
+    await site.start()
 
     # Настройка Telegram bot
     app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
@@ -29,17 +26,14 @@ def run():
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
     webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
 
-    # Запуск webhook как задачу
+    # Запуск webhook
     webhook_port = health_port + 1
-    loop.create_task(app.run_webhook(
+    await app.run_webhook(
         listen="0.0.0.0",
         port=webhook_port,
         url_path="telegram",
         webhook_url=webhook_url
-    ))
-
-    # Держим цикл событий активным
-    loop.run_forever()
+    )
 
 async def start(update, context):
     keyboard = [["➕ Добавить статью", "✅ Добавить задачу"], ["📖 Показать статьи", "📋 Показать задачи"], ["🧼 Очистить статьи", "🧼 Очистить задачи"]]
@@ -94,4 +88,4 @@ async def handle_message(update, context):
         await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
 
 if __name__ == "__main__":
-    run()
+    asyncio.run(run())
