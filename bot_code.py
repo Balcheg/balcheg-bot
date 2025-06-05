@@ -4,11 +4,6 @@ from telegram import ReplyKeyboardMarkup, KeyboardButton
 from sheets_code import add_article, add_goal, get_articles, get_goals, clear_sheet
 from datetime import datetime
 
-app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("menu", menu))
-app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
-
 async def start(update, context):
     keyboard = [
         ["➕ Добавить статью", "✅ Добавить задачу"],
@@ -64,6 +59,11 @@ async def handle_message(update, context):
                 await update.message.reply_text("🤖 Используй кнопки для действий.")
     except Exception as e:
         await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
+
+app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("menu", menu))
+app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
 
 if __name__ == "__main__":
     app.run_polling(timeout=10)
