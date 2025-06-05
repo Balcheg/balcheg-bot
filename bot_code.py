@@ -1,4 +1,4 @@
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, MessageHandler
 from telegram.ext.filters import Text, COMMAND
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 from sheets_code import add_article, add_goal, get_articles, get_goals, clear_sheet
@@ -10,6 +10,7 @@ def run():
     app.add_handler(CommandHandler("menu", menu))
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
     webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
+
     app.run_webhook(
         listen="0.0.0.0",
         port=int(os.getenv("PORT", 10000)),
