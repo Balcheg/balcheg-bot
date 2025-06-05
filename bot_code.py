@@ -3,6 +3,15 @@ from telegram.ext.filters import Text, COMMAND
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 from sheets_code import add_article, add_goal, get_articles, get_goals, clear_sheet
 import os
+import asyncio
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"OK")
 
 def run():
     app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
@@ -11,12 +20,18 @@ def run():
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
     webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
 
-    app.run_webhook(
+    # Запуск webhook
+    loop = asyncio.get_event_loop()
+    loop.create_task(app.run_webhook(
         listen="0.0.0.0",
         port=int(os.getenv("PORT", 10000)),
         url_path="telegram",
         webhook_url=webhook_url
-    )
+    ))
+
+    # Запуск health check сервера
+    server = HTTPServer(("0.0.0.0", int(os.getenv("PORT", 10000))), HealthCheckHandler)
+    loop.run_until_complete(loop.run_in_executor(None, server.serve_forever))
 
 async def start(update, context):
     keyboard = [["➕ Добавить статью", "✅ Добавить задачу"], ["📖 Показать статьи", "📋 Показать задачи"], ["🧼 Очистить статьи", "🧼 Очистить задачи"]]
