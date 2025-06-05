@@ -6,34 +6,35 @@ import os
 import asyncio
 from aiohttp import web
 
-def run():
+async def health_check(request):
+    return web.Response(text="OK", status=200)
+
+async def run():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+    # Настройка health check
+    web_app = web.Application()
+    web_app.router.add_get("/health", health_check)
+    runner = web.AppRunner(web_app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 10000)))
+    await site.start()
+
+    # Настройка Telegram bot
     app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu))
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
     webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
 
-    # Настройка aiohttp для health check
-    web_app = web.Application()
-    web_app.router.add_get("/health", lambda request: web.Response(text="OK", status=200))
-
-    # Запуск сервера
-    runner = web.AppRunner(web_app)
-    loop.run_until_complete(runner.setup())
-    site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 10000)))
-    loop.create_task(site.start())
-
-    # Указание уникального порта для webhook
-    port = int(os.getenv("PORT", 10000)) + 1  # Сдвиг порта
-    loop.run_until_complete(app.run_webhook(
+    # Запуск webhook
+    await app.run_webhook(
         listen="0.0.0.0",
-        port=port,
+        port=int(os.getenv("PORT", 10000)),
         url_path="telegram",
         webhook_url=webhook_url
-    ))
+    )
 
 async def start(update, context):
     keyboard = [["➕ Добавить статью", "✅ Добавить задачу"], ["📖 Показать статьи", "📋 Показать задачи"], ["🧼 Очистить статьи", "🧼 Очистить задачи"]]
@@ -88,4 +89,4 @@ async def handle_message(update, context):
         await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
 
 if __name__ == "__main__":
-    run()
+    asyncio.run(run())
