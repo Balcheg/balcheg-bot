@@ -26,10 +26,11 @@ def run():
     site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 10000)))
     loop.create_task(site.start())
 
-    # Запуск webhook
+    # Указание уникального порта для webhook
+    port = int(os.getenv("PORT", 10000)) + 1  # Сдвиг порта
     loop.run_until_complete(app.run_webhook(
         listen="0.0.0.0",
-        port=int(os.getenv("PORT", 10000)),
+        port=port,
         url_path="telegram",
         webhook_url=webhook_url
     ))
