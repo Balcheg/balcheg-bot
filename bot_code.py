@@ -5,19 +5,21 @@ from sheets_code import add_article, add_goal, get_articles, get_goals, clear_sh
 import os
 import asyncio
 
-async def run():
+def run():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu))
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
     webhook_url = "https://balcheg-bot-1.onrender.com/telegram"
 
-    await app.run_webhook(
+    loop.run_until_complete(app.run_webhook(
         listen="0.0.0.0",
         port=int(os.getenv("PORT", 10000)),
         url_path="telegram",
         webhook_url=webhook_url
-    )
+    ))
 
 async def start(update, context):
     keyboard = [["➕ Добавить статью", "✅ Добавить задачу"], ["📖 Показать статьи", "📋 Показать задачи"], ["🧼 Очистить статьи", "🧼 Очистить задачи"]]
@@ -72,4 +74,4 @@ async def handle_message(update, context):
         await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
 
 if __name__ == "__main__":
-    asyncio.run(run())
+    run()
