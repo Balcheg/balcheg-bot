@@ -6,18 +6,15 @@ import os
 import asyncio
 from aiohttp import web
 
-# --- Хэндлер проверки состояния сервера (для Render) ---
 async def health_check(request):
     return web.Response(text="OK", status=200)
 
-# --- Webhook для Telegram ---
 async def telegram_webhook(request):
     data = await request.json()
     update = Update.de_json(data, app.bot)
     await app.process_update(update)
     return web.Response(text="OK", status=200)
 
-# --- Инициализация приложения Telegram ---
 async def setup_application():
     global app
     app = Application.builder().token("7281433062:AAGozy3VnJ-o7IxUjO16rWOgJLLXw-K-OMM").build()
@@ -26,55 +23,36 @@ async def setup_application():
     app.add_handler(MessageHandler(Text() & ~COMMAND, handle_message))
     await app.initialize()
 
-# --- Основной цикл бота и веб-сервера ---
 async def run():
     await setup_application()
 
-    # Настройка веб-сервера для Render
+    # Настройка сервера
     web_app = web.Application()
     web_app.router.add_get("/health", health_check)
     web_app.router.add_post("/telegram", telegram_webhook)
 
+    # Запуск сервера
     port = int(os.getenv("PORT", 10000))
     runner = web.AppRunner(web_app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
-    # Держим бота в активном состоянии
+    # Держим сервер активным
     await asyncio.Event().wait()
 
-# --- Команда /start ---
 async def start(update, context):
-    keyboard = [
-        ["➕ Добавить статью", "✅ Добавить задачу"],
-        ["📖 Показать статьи", "📋 Показать задачи"],
-        ["🧼 Очистить статьи", "🧼 Очистить задачи"]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    keyboard = [["➕ Добавить статью", "✅ Добавить задачу"], ["📖 Показать статьи", "📋 Показать задачи"], ["🧼 Очистить статьи", "🧼 Очистить задачи"]]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
     await update.message.reply_text("Выбери действие:", reply_markup=reply_markup)
 
 async def menu(update, context):
     await start(update, context)
 
-# --- Основная логика сообщений ---
 async def handle_message(update, context):
     message = update.message.text
     username = update.message.from_user.username or update.message.from_user.first_name
-
     try:
-        # Проверка на действие "подтверждение очистки"
-        if 'confirm_clear' in context.user_data:
-            sheet_name = context.user_data['confirm_clear']
-            if message == "Да Очистить!":
-                clear_sheet(sheet_name)
-                await update.message.reply_text(f"🧼 { 'Статьи' if sheet_name == 'Articles' else 'Задачи' } очищены.")
-            else:
-                await update.message.reply_text("✅ Оставляем всё как есть.")
-            context.user_data.clear()
-            return
-
-        # Основные действия
         if 'action' in context.user_data:
             if context.user_data['action'] == 'add_article':
                 add_article(message, username)
@@ -105,15 +83,11 @@ async def handle_message(update, context):
                 else:
                     await update.message.reply_text("Пока нет задач.")
             elif message == "🧼 Очистить статьи":
-                context.user_data['confirm_clear'] = 'Articles'
-                confirm_keyboard = [["Да Очистить!", "Нет Оставить!"]]
-                reply_markup = ReplyKeyboardMarkup(confirm_keyboard, resize_keyboard=True)
-                await update.message.reply_text("❓ Точно очистить? Не промахнулись?", reply_markup=reply_markup)
+                clear_sheet('Articles')
+                await update.message.reply_text("🧼 Список статей очищен.")
             elif message == "🧼 Очистить задачи":
-                context.user_data['confirm_clear'] = 'Goals'
-                confirm_keyboard = [["Да Очистить!", "Нет Оставить!"]]
-                reply_markup = ReplyKeyboardMarkup(confirm_keyboard, resize_keyboard=True)
-                await update.message.reply_text("❓ Точно очистить? Не промахнулись?", reply_markup=reply_markup)
+                clear_sheet('Goals')
+                await update.message.reply_text("🧼 Список задач очищен.")
             else:
                 await update.message.reply_text("🤖 Используй кнопки для действий.")
     except Exception as e:
