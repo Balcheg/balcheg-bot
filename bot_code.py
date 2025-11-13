@@ -6,6 +6,7 @@ import os
 import asyncio
 from aiohttp import web
 
+
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def main_menu_keyboard():
     """Возвращает клавиатуру основного меню без текста 'Выбери действие'"""
