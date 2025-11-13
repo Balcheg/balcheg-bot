@@ -34,7 +34,6 @@ async def run():
     """Запуск Telegram webhook и HTTP-сервера."""
     await setup_application()
 
-    # Создаём aiohttp-сервер для Render
     web_app = web.Application()
     web_app.router.add_get("/health", health_check)
     web_app.router.add_post("/telegram", telegram_webhook)
@@ -46,23 +45,26 @@ async def run():
     await site.start()
 
     print(f"✅ Бот запущен и слушает порт {port}")
-    await asyncio.Event().wait()  # держит сервер активным
+    await asyncio.Event().wait()
 
 # ====== ОСНОВНОЕ МЕНЮ ======
 
-async def start(update, context):
-    """Главное меню с кнопками."""
+def get_main_menu():
+    """Возвращает клавиатуру основного меню."""
     keyboard = [
         ["➕ Добавить статью", "✅ Добавить задачу"],
         ["📖 Показать статьи", "📋 Показать задачи"],
         ["🧼 Очистить статьи", "🧼 Очистить задачи"]
     ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-    await update.message.reply_text("Выбери действие:", reply_markup=reply_markup)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+async def start(update, context):
+    """Главное меню (без текста)."""
+    await update.message.reply_text(" ", reply_markup=get_main_menu())
 
 async def menu(update, context):
-    """Команда /menu — просто заново показывает кнопки."""
-    await start(update, context)
+    """Команда /menu — просто показывает меню."""
+    await update.message.reply_text(" ", reply_markup=get_main_menu())
 
 # ====== ЛОГИКА ОБРАБОТКИ СООБЩЕНИЙ ======
 
@@ -72,16 +74,15 @@ async def handle_message(update, context):
     username = update.message.from_user.username or update.message.from_user.first_name
 
     try:
-        # Если пользователь в процессе добавления статьи или задачи
+        # Если пользователь добавляет статью или задачу
         if 'action' in context.user_data:
             if context.user_data['action'] == 'add_article':
                 add_article(message, username)
-                await update.message.reply_text("✅ Статья добавлена.")
+                await update.message.reply_text("✅ Статья добавлена.", reply_markup=get_main_menu())
             elif context.user_data['action'] == 'add_task':
                 add_goal(message, username)
-                await update.message.reply_text("✅ Задача добавлена.")
+                await update.message.reply_text("✅ Задача добавлена.", reply_markup=get_main_menu())
             context.user_data.clear()
-            await start(update, context)
             return
 
         # === ДОБАВЛЕНИЕ ===
@@ -97,18 +98,20 @@ async def handle_message(update, context):
         elif message == "📖 Показать статьи":
             articles = get_articles()
             if articles:
-                response = "\n".join([f"{row[0]}: {row[1]} (добавил: {row[2]})" for row in articles if len(row) >= 3])
-                await update.message.reply_text(f"📖 Статьи:\n{response}")
+                response = "\n".join([f"{row[0]}: {row[1]} (добавил: {row[2]})"
+                                      for row in articles if len(row) >= 3])
+                await update.message.reply_text(f"📖 Статьи:\n{response}", reply_markup=get_main_menu())
             else:
-                await update.message.reply_text("Пока нет статей.")
+                await update.message.reply_text("Пока нет статей.", reply_markup=get_main_menu())
 
         elif message == "📋 Показать задачи":
             tasks = get_goals()
             if tasks:
-                response = "\n".join([f"{row[0]}: {row[1]} (добавил: {row[2]})" for row in tasks if len(row) >= 3])
-                await update.message.reply_text(f"📋 Задачи:\n{response}")
+                response = "\n".join([f"{row[0]}: {row[1]} (добавил: {row[2]})"
+                                      for row in tasks if len(row) >= 3])
+                await update.message.reply_text(f"📋 Задачи:\n{response}", reply_markup=get_main_menu())
             else:
-                await update.message.reply_text("Пока нет задач.")
+                await update.message.reply_text("Пока нет задач.", reply_markup=get_main_menu())
 
         # === ПОДТВЕРЖДЕНИЕ ОЧИСТКИ ===
         elif message == "🧼 Очистить статьи":
@@ -123,28 +126,27 @@ async def handle_message(update, context):
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
             await update.message.reply_text("❗ Точно очистить задачи? Не промахнулись?", reply_markup=reply_markup)
 
-        # === РЕАКЦИЯ НА ПОДТВЕРЖДЕНИЕ ===
+        # === ПОДТВЕРЖДЕНИЕ ===
         elif message == "Да Очистить!":
             if 'confirm_clear' in context.user_data:
                 target = context.user_data['confirm_clear']
                 clear_sheet(target)
                 await update.message.reply_text(
-                    f"🧼 Список {'статей' if target == 'Articles' else 'задач'} очищен."
+                    f"🧼 Список {'статей' if target == 'Articles' else 'задач'} очищен.",
+                    reply_markup=get_main_menu()
                 )
                 context.user_data.pop('confirm_clear', None)
-                await start(update, context)
 
         elif message == "Нет Оставить!":
-            await update.message.reply_text("🙂 Оставил всё как есть.")
+            await update.message.reply_text("🙂 Оставил всё как есть.", reply_markup=get_main_menu())
             context.user_data.pop('confirm_clear', None)
-            await start(update, context)
 
         # === ОСТАЛЬНОЕ ===
         else:
-            await update.message.reply_text("🤖 Используй кнопки для действий.")
+            await update.message.reply_text("🤖 Используй кнопки для действий.", reply_markup=get_main_menu())
 
     except Exception as e:
-        await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
+        await update.message.reply_text(f"⚠️ Ошибка: {str(e)}", reply_markup=get_main_menu())
 
 # ====== ЗАПУСК ======
 
