@@ -1,6 +1,6 @@
 from telegram.ext import Application, CommandHandler, MessageHandler
 from telegram.ext.filters import Text, COMMAND
-from telegram import ReplyKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, KeyboardButton, Update
 from sheets_code import add_article, add_goal, get_articles, get_goals, clear_sheet
 import os
 import asyncio
